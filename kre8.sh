@@ -1,4 +1,3 @@
-
 container_name=k8autotest
 
 folder_exists () {
@@ -138,7 +137,7 @@ man_list () {
 }
 
 list () {
-    docker ps -a | 
+    docker ps -a
 }
 
 man_help () {

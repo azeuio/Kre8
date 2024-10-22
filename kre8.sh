@@ -21,7 +21,8 @@ init () {
     if [ $exists -eq 0 ]; then
         npm create astro@latest -y $destinationFolder
 
-        # TODO: use github in the future
+        curl -s https://raw.githubusercontent.com/azeuio/Kre8/refs/heads/main/templates/Dockerfile > "$destinationFolder/Dockerfile"
+        grep -l "\"start\": \"astro dev\"" $destinationFolder/package.json | xargs sed -i 's/\"start\": \"astro dev\"/\"start\": \"astro dev --host\"/g'
     elif [ $exists -eq 1 ]; then
         echo "Folder '$destinationFolder' does not exist"
     elif [ $exists -eq 2 ]; then

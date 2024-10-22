@@ -1,3 +1,4 @@
+
 container_name=k8autotest
 
 folder_exists () {
@@ -56,16 +57,6 @@ run () {
     docker run -dp $port:4321 $container_name
 }
 
-man_start () {
-    printf "NAME\n\tstart\nSYNOPSIS\n\t$0 start TAG_NAME [DIRECTORY] [PORT]\n\nDESCRIPTION\n\tBuild and run the container named TAG_NAME from DIRECTORY(default:'.') and expose PORT(default:3000)\n"
-}
-
-start () {
-    container_tag=$2
-    stop $container_tag
-    build $* && run $container_tag $4
-}
-
 man_stop () {
     printf "NAME\n\tstop\nSYNOPSIS\n\t$0 stop CONTAINER_TAG\n\nDESCRIPTION\n\tStops the tagged container\n"
 }
@@ -83,6 +74,15 @@ stop () {
     docker kill $id_to_kill
 }
 
+man_start () {
+    printf "NAME\n\tstart\nSYNOPSIS\n\t$0 start TAG_NAME [DIRECTORY] [PORT]\n\nDESCRIPTION\n\tBuild and run the container named TAG_NAME from DIRECTORY(default:'.') and expose PORT(default:3000)\n"
+}
+
+start () {
+    container_tag=$2
+    remove $container_tag
+    build $* && run $container_tag $4
+}
 
 man_restart () {
     printf "NAME\n \
@@ -118,7 +118,7 @@ man_remove () {
 
 remove () {
     if [ -z $1 ]; then
-        man_rm >&2
+        man_remove >&2
         return 1
     fi
     id_to_rm=$(docker ps -a | grep -w $1 | head -n 1 | grep -oE '^[^ ]+')
@@ -127,6 +127,19 @@ remove () {
 }
 
 
+man_list () {
+    printf "NAME\n \
+    \tls\n \
+    SYNOPSIS\n \
+    \t$0 ls\n \
+    \nDESCRIPTION\n \
+    \tLists all containers\n" \
+    /
+}
+
+list () {
+    docker ps -a | 
+}
 
 man_help () {
     printf "NAME\n\thelp\nSYNOPSIS\n\t$0 help [COMMAND] [PORT]\n\nDESCRIPTION\n\tPrint help for every command of for COMMAND if it is set\n"
@@ -147,6 +160,8 @@ elif [[ "$1" == 'restart' ]]; then
     restart $2
 elif [[ "$1" == 'rm' ]]; then
     remove $2
+elif [[ "$1" == 'ls' ]]; then
+    list $2
 elif [[ "$1" == 'help' ]]; then
     if [[ "$2" == 'init' ]]; then
         man_init
@@ -162,6 +177,8 @@ elif [[ "$1" == 'help' ]]; then
         man_restart
     elif [[ "$2" == 'rm' ]]; then
         man_remove
+    elif [[ "$2" == 'ls' ]]; then
+        man_list
     elif [[ "$2" == 'help' ]]; then
         man_help
     else
@@ -179,6 +196,8 @@ elif [[ "$1" == 'help' ]]; then
         man_restart
         echo ==========
         man_remove
+        echo ==========
+        man_list
         echo ==========
         man_help
     fi

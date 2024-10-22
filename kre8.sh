@@ -61,8 +61,72 @@ man_start () {
 }
 
 start () {
-    build $* && run $2 $4
+    container_tag=$2
+    stop $container_tag
+    build $* && run $container_tag $4
 }
+
+man_stop () {
+    printf "NAME\n\tstop\nSYNOPSIS\n\t$0 stop CONTAINER_TAG\n\nDESCRIPTION\n\tStops the tagged container\n"
+}
+
+stop () {
+    if [ -z $1 ]; then
+        man_stop >&2
+        return 1
+    fi
+    id_to_kill=$(docker ps | grep -w $1 | head -n 1 | awk '{print $1}')
+    if [ -z $id_to_kill ]; then
+        echo "Could not find the specified container ('$1')" >&2
+        return 1
+    fi
+    docker kill $id_to_kill
+}
+
+
+man_restart () {
+    printf "NAME\n \
+    \trestart\n \
+    SYNOPSIS\n \
+    \t$0 restart CONTAINER_TAG\n \
+    \nDESCRIPTION\n \
+    \tIf the container does not exist, starts a new one\n \
+    \tOtherwise, if the it exists and is running, stops it then run it again\n \
+    \tOtherwise, if the it exists and is stopped, run it again\n" \
+    /
+}
+
+restart () {
+    if [ -z $1 ]; then
+        man_restart >&2
+        return 1
+    fi
+    id_to_restart=$(docker ps -a | grep -w $1 | head -n 1 | grep -oE '^[^ ]+')
+    docker restart $id_to_restart
+}
+
+
+man_remove () {
+    printf "NAME\n \
+    \trm\n \
+    SYNOPSIS\n \
+    \t$0 rm CONTAINER_TAG\n \
+    \nDESCRIPTION\n \
+    \tRemoves CONTAINER\n" \
+    /
+}
+
+remove () {
+    if [ -z $1 ]; then
+        man_rm >&2
+        return 1
+    fi
+    id_to_rm=$(docker ps -a | grep -w $1 | head -n 1 | grep -oE '^[^ ]+')
+    docker stop $id_to_rm
+    docker rm $id_to_rm
+}
+
+
 
 man_help () {
     printf "NAME\n\thelp\nSYNOPSIS\n\t$0 help [COMMAND] [PORT]\n\nDESCRIPTION\n\tPrint help for every command of for COMMAND if it is set\n"
@@ -77,6 +141,12 @@ elif [[ "$1" == 'run' ]]; then
     run $2 $3
 elif [[ "$1" == 'start' ]]; then
     start $@
+elif [[ "$1" == 'stop' ]]; then
+    stop $2
+elif [[ "$1" == 'restart' ]]; then
+    restart $2
+elif [[ "$1" == 'rm' ]]; then
+    remove $2
 elif [[ "$1" == 'help' ]]; then
     if [[ "$2" == 'init' ]]; then
         man_init
@@ -86,6 +156,12 @@ elif [[ "$1" == 'help' ]]; then
         man_run
     elif [[ "$2" == 'start' ]]; then
         man_start
+    elif [[ "$2" == 'stop' ]]; then
+        man_stop
+    elif [[ "$2" == 'restart' ]]; then
+        man_restart
+    elif [[ "$2" == 'rm' ]]; then
+        man_remove
     elif [[ "$2" == 'help' ]]; then
         man_help
     else
@@ -97,6 +173,12 @@ elif [[ "$1" == 'help' ]]; then
         man_run
         echo ==========
         man_start
+        echo ==========
+        man_stop
+        echo ==========
+        man_restart
+        echo ==========
+        man_remove
         echo ==========
         man_help
     fi

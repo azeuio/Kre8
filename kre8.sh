@@ -10,19 +10,45 @@ folder_exists () {
     fi
 }
 
+program_name=$0
+
 man_init () {
-    printf "NAME\n\tinit\nSYNOPSIS\n\t$0 init [DIRECTORY]\n\nDESCRIPTION\n\tInitialize a container in DIRECTORY(default:'.') for AstroJs dev\n"
+    printf "NAME\n\
+    \tinit\n\
+    SYNOPSIS\n\
+    \t$program_name init URL [DIRECTORY]\n\
+    \n\
+    DESCRIPTION\n\
+    \tInitialize a container in DIRECTORY(default:'.') for an AstroJs app\n\
+    The app is expected to be published at URL"
+    /
 }
 
 init () {
+    if [ -z $1 ]; then
+        man_init >&2
+        return 1
+    fi
     destinationFolder=${2:-'.'}
     folder_exists $destinationFolder
     exists=$?
     if [ $exists -eq 0 ]; then
-        npm create astro@latest -y $destinationFolder
+        url=$1
+        npm create astro@latest $destinationFolder -- --template minimal --no-install --git --typescript strict --skip-houston
 
-        curl -s https://raw.githubusercontent.com/azeuio/Kre8/refs/heads/main/templates/Dockerfile > "$destinationFolder/Dockerfile"
-        grep -l "\"start\": \"astro dev\"" $destinationFolder/package.json | xargs sed -i 's/\"start\": \"astro dev\"/\"start\": \"astro dev --host\"/g'
+        if [ $? -ne 0 ]; then
+            return $?
+        fi
+        cd "$destinationFolder"
+        # TODO: See why astro build does not work with the commands given by astro
+        # insert a Dockerfile
+        curl -s https://raw.githubusercontent.com/azeuio/Kre8/refs/heads/main/templates/Dockerfile > "./Dockerfile"
+        # edit package.json so the project can be executed
+        # grep -l "\"start\": \"astro dev\"" ./package.json | xargs sed -i 's/\"start\": \"astro dev\"/\"start\": \"astro dev --host\"/g'
+        curl -s https://raw.githubusercontent.com/azeuio/Kre8/refs/heads/main/templates/tsconfig.json > "./tsconfig.json"
+        npm i @astrojs/node
+        curl -s https://raw.githubusercontent.com/azeuio/Kre8/refs/heads/main/templates/astro.config.mjs > "./astro.config.mjs"
+        grep "site:"  ./astro.config.mjs  -l | xargs sed -Ei "s/site: .*,/site: 'https:\/\/www.website.com',/g"
     elif [ $exists -eq 1 ]; then
         echo "Folder '$destinationFolder' does not exist"
     elif [ $exists -eq 2 ]; then
@@ -146,7 +172,7 @@ man_help () {
 
 
 if [[ "$1" == 'init' ]]; then
-    init $@
+    init $2 $3
 elif [[ "$1" == 'build' ]]; then
     build $@
 elif [[ "$1" == 'run' ]]; then
